@@ -50,7 +50,7 @@ func initializeDataBase() *sql.DB {
 func authEndpoint(db *sql.DB, r *gin.Engine){
 	r.GET("/auth", func(c * gin.Context){
 		u := models.User{}
-		l := models.Login{}
+		l := models.Credentials{}
 		if err := c.BindJSON(&l); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

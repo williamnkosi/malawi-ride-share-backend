@@ -1,6 +1,6 @@
 package models
 
-type Login struct {
+type Credentials struct {
 	PhoneNumber string
 	Password string
 }
