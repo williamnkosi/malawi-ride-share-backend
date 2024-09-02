@@ -22,6 +22,7 @@ func main() {
 			"message": "pong",
 		})
 	})
+	authEndpoint(db,r)
 	UserEndpoint(db,r)
  	r.Run() // listen and serve on 0.0.0.0:8080
 
@@ -46,9 +47,38 @@ func initializeDataBase() *sql.DB {
 
 
 
+func authEndpoint(db *sql.DB, r *gin.Engine){
+	r.GET("/auth", func(c * gin.Context){
+		u := models.User{}
+		l := models.Login{}
+		if err := c.BindJSON(&l); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		 err := db.QueryRow("SELECT user_id, firstName, lastName, phoneNumber, email, age, password FROM test.users WHERE phoneNumber=$1", l.PhoneNumber).Scan(&u.Id,&u.FirstName, &u.LastName,&u.PhoneNumber, &u.Email, &u.Age,  &u.Password)
+		if err != nil {
+			if err == sql.ErrNoRows{
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query error"})
+			}
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword( []byte(u.Password),[]byte(l.Password)); err != nil{
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
+			return 
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+		
+	})
+}
+
 func UserEndpoint(db *sql.DB, r *gin.Engine){
 	r.POST("/user", func( c *gin.Context) {
-		u := models.User{}
+		u := models.CreateUser{}
 
 		if err := c.BindJSON(&u); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

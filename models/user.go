@@ -1,11 +1,11 @@
 package models
 
 type User struct {
+	Id string
 	FirstName string
-	LastName string 
+	LastName string
 	PhoneNumber string
 	Email string
 	Age int
-	Password1 string
-	Password2 string
+	Password string
 }
