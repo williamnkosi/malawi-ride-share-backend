@@ -44,6 +44,8 @@ func initializeDataBase() *sql.DB {
 	return db;
 }
 
+
+
 func UserEndpoint(db *sql.DB, r *gin.Engine){
 	r.POST("/user", func( c *gin.Context) {
 		u := models.User{}
@@ -71,5 +73,7 @@ func UserEndpoint(db *sql.DB, r *gin.Engine){
 		} 
 		c.JSON(http.StatusCreated, gin.H{"status": "User created"})
 	})
+
+
 }
 
