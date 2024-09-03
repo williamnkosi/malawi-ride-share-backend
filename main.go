@@ -6,6 +6,7 @@ import (
 	"log"
 	"malawi-ride-share-backend/models"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,13 @@ import (
 
 var jwtKey  = []byte("testing-the-new-key")
 
+type TestType struct {
+	
+	FirstName string
+	LastName string
+	PhoneNumber string
+}	
+
 func main() {
 	r := gin.Default()
 
@@ -25,6 +33,7 @@ func main() {
 			"message": "pong",
 		})
 	})
+	r.Use(CustomRecovery())
 	authEndpoint(db,r)
 	UserEndpoint(db,r)
  	r.Run() // listen and serve on 0.0.0.0:8080
@@ -93,7 +102,9 @@ func authEndpoint(db *sql.DB, r *gin.Engine){
 }
 
 func UserEndpoint(db *sql.DB, r *gin.Engine){
-	r.POST("/user", func( c *gin.Context) {
+
+	const USER_ENPOINT = "/user"
+	r.POST(USER_ENPOINT, func( c *gin.Context) {
 		u := models.CreateUser{}
 
 		if err := c.BindJSON(&u); err != nil {
@@ -119,6 +130,36 @@ func UserEndpoint(db *sql.DB, r *gin.Engine){
 		} 
 		c.JSON(http.StatusCreated, gin.H{"status": "User created"})
 	})
+
+	r.GET("/user",AuthMiddleware(), func(c *gin.Context){
+	
+		cr := models.Credentials{}
+		ur := &TestType{}
+		if err:= c.BindJSON(&cr); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		phoneNumber := c.MustGet("phoneNumber").(string)
+
+		if phoneNumber == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no phoneNumber"})
+			return 
+		}
+		err:= db.QueryRow(`SELECT firstName,lastName, phoneNumber FROM test.users WHERE phoneNumber=$1 `, phoneNumber).Scan( &ur.FirstName, &ur.LastName, &ur.PhoneNumber)
+		if err != nil {
+			if err == sql.ErrNoRows{
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query error"})
+			}
+			return
+		}
+		
+		c.JSON(http.StatusOK,gin.H{"message": ur})
+	
+
+	})
 }
 
 
@@ -129,12 +170,24 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context){
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
+		print("entered")
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
 			c.JSON(http.StatusBadRequest,gin.H{"error": "Token is required"})
 			c.Abort()
 			return
 		}
+
+		        // Assuming the token comes in the format "Bearer <token>"
+				parts := strings.Split(authHeader, " ")
+				if len(parts) != 2 || parts[0] != "Bearer" {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token format must be 'Bearer <token>'"})
+					c.Abort()
+					return
+				}
+		
+				tokenString := parts[1]
+		
 
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -167,8 +220,30 @@ func AuthMiddleware() gin.HandlerFunc {
         }
 
 		 // Set the username in the context for the next handlers
-		 c.Set("username", claims.PhoneNumber)
+		 fmt.Println("======]")
+		 print(claims.PhoneNumber)
+		 
+		 c.Set("phoneNumber", claims.PhoneNumber)
 		 c.Next()
 
 	}
+}
+
+
+func CustomRecovery() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        defer func() {
+            if err := recover(); err != nil {
+                // Log the error (you could also send it to an error tracking service)
+                log.Printf("Panic recovered: %s", err)
+
+                // Return a 500 status with a custom message
+                c.JSON(http.StatusInternalServerError, gin.H{
+                    "error": "Internal Server Error. Please try again later.",
+                })
+                c.Abort()
+            }
+        }()
+        c.Next()
+    }
 }
