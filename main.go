@@ -119,7 +119,56 @@ func UserEndpoint(db *sql.DB, r *gin.Engine){
 		} 
 		c.JSON(http.StatusCreated, gin.H{"status": "User created"})
 	})
-
-
 }
 
+
+func AuthMiddleware() gin.HandlerFunc {
+	type Claims struct {
+		PhoneNumber string `json:"phoneNumber"`
+		jwt.RegisteredClaims
+	}
+
+	return func(c *gin.Context){
+		tokenString := c.GetHeader("Authorization")
+		if tokenString == "" {
+			c.JSON(http.StatusBadRequest,gin.H{"error": "Token is required"})
+			c.Abort()
+			return
+		}
+
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+            return jwtKey, nil
+        })
+
+		// Handle token parsing errors
+        if err != nil {
+            if err == jwt.ErrSignatureInvalid {
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
+                c.Abort()
+                return
+            }
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
+
+        if !token.Valid {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
+
+        // Ensure the token isn't expired
+        if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
+            c.Abort()
+            return
+        }
+
+		 // Set the username in the context for the next handlers
+		 c.Set("username", claims.PhoneNumber)
+		 c.Next()
+
+	}
+}
