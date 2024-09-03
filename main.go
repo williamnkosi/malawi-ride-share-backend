@@ -6,12 +6,15 @@ import (
 	"log"
 	"malawi-ride-share-backend/models"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
+var jwtKey  = []byte("testing-the-new-key")
 
 func main() {
 	r := gin.Default()
@@ -71,7 +74,20 @@ func authEndpoint(db *sql.DB, r *gin.Engine){
 			return 
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+		expirationTime := time.Now().Add(2* time.Hour)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"phoneNumber": u.PhoneNumber,
+			"firstName": u.FirstName,
+			"lastName": u.LastName,
+			"expiration-time": expirationTime,
+		})
+		tokenString, err := token.SignedString(jwtKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create token"})
+			return 
+		}
+
+		c.JSON(http.StatusOK, gin.H{"data": tokenString})
 		
 	})
 }
