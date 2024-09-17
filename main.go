@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"malawi-ride-share-backend/models"
@@ -35,7 +36,10 @@ func main() {
 	r.Use(CustomRecovery())
 	authEndpoint(db, r)
 	UserEndpoint(db, r)
-	r.Run() // listen and serve on 0.0.0.0:8080
+	err := r.Run()
+	if err != nil {
+		return
+	} // listen and serve on 0.0.0.0:8080
 
 }
 
@@ -51,7 +55,7 @@ func initializeDataBase() *sql.DB {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Successfully connected to PostgreSQL!")
+	fmt.Println("Successfully connected to PostgresSQL!")
 	return db
 }
 
@@ -65,9 +69,9 @@ func authEndpoint(db *sql.DB, r *gin.Engine) {
 			return
 		}
 
-		err := db.QueryRow("SELECT id, first_name, last_name, phone_number, email, password_hash FROM users WHERE phone_number=$1", l.PhoneNumber).Scan(&u.Id, &u.FirstName, &u.LastName, &u.PhoneNumber, &u.Email, &u.Age, &u.Password)
+		err := db.QueryRow("SELECT id, first_name, last_name, phone_number, email, password_hash, role  FROM users WHERE phone_number=$1", l.PhoneNumber).Scan(&u.Id, &u.FirstName, &u.LastName, &u.PhoneNumber, &u.Email, &u.Password, &u.Role)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query error"})
@@ -80,14 +84,7 @@ func authEndpoint(db *sql.DB, r *gin.Engine) {
 			return
 		}
 
-		expirationTime := time.Now().Add(2 * time.Hour)
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"phoneNumber":     u.PhoneNumber,
-			"firstName":       u.FirstName,
-			"lastName":        u.LastName,
-			"expiration-time": expirationTime,
-		})
-		tokenString, err := token.SignedString(jwtKey)
+		tokenString, err := generateToken(u.Id, u.FirstName, u.LastName, u.PhoneNumber)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create token"})
 			return
@@ -96,6 +93,20 @@ func authEndpoint(db *sql.DB, r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{"data": tokenString})
 	})
 
+}
+
+func generateToken(id string, phoneNumber string, firstName string, lastName string) (string, error) {
+	expirationTime := time.Now().Add(2 * time.Hour)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id":              id,
+		"phoneNumber":     phoneNumber,
+		"firstName":       firstName,
+		"lastName":        lastName,
+		"expiration-time": expirationTime,
+	})
+	tokenString, err := token.SignedString(jwtKey)
+
+	return tokenString, err
 }
 
 func UserEndpoint(db *sql.DB, r *gin.Engine) {
@@ -119,13 +130,49 @@ func UserEndpoint(db *sql.DB, r *gin.Engine) {
 			return
 		}
 
-		registerUserSqlStatement := `INSERT INTO users(first_name, last_name, phone_number,  email, password_hash, role) VALUES($1,$2,$3,$4,$5,$6)`
-		_, err = db.Exec(registerUserSqlStatement, u.FirstName, u.LastName, u.PhoneNumber, u.Email, hashedPassword, u.Role)
+		//registerUserSqlStatement := `INSERT INTO users(first_name, last_name, phone_number,  email, password_hash, role) VALUES($1,$2,$3,$4,$5,$6)`
+		//_, err = db.Exec(registerUserSqlStatement, u.FirstName, u.LastName, u.PhoneNumber, u.Email, hashedPassword, u.Role)
+
+		//if err != nil {
+		//	c.JSON(http.StatusBadRequest, gin.H{"error with database": err.Error()})
+		//	return
+		//}
+
+		var id string
+
+		err = db.QueryRow("INSERT INTO users(first_name, last_name, phone_number,  email, password_hash, role) VALUES($1,$2,$3,$4,$5,$6) RETURNING id", u.FirstName, u.LastName, u.PhoneNumber, u.Email, hashedPassword, u.Role).Scan(&id)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error with database": err.Error()})
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{"status": "User created"})
+
+		tokenString, err := generateToken(id, u.PhoneNumber, u.FirstName, u.LastName)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create token"})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"status": "User created", "token": tokenString, "id": id})
+	})
+
+	r.POST(USER_ENPOINT+"/driver", AuthMiddleware(), func(c *gin.Context) {
+		var d = models.CreateDriver{}
+		if err := c.BindJSON(&d); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		registerDriverSqlStatement := `INSERT INTO drivers(user_id,license_number,vehicle_id, rating,status) VALUES($1,$2,$3,$4,$5)`
+
+		_, err := db.Exec(registerDriverSqlStatement, d.UserId, d.LicenseNumber, d.VehicleID, 5, "active")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error with database": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"status": "Driver created"})
+
 	})
 
 	r.GET("/user", AuthMiddleware(), func(c *gin.Context) {
@@ -145,7 +192,7 @@ func UserEndpoint(db *sql.DB, r *gin.Engine) {
 		}
 		err := db.QueryRow(`SELECT first_name,last_name, phone_number FROM users WHERE phone_number=$1 `, phoneNumber).Scan(&ur.FirstName, &ur.LastName, &ur.PhoneNumber)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query error"})
@@ -190,7 +237,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Handle token parsing errors
 		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
 				c.Abort()
 				return

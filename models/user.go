@@ -8,5 +8,5 @@ type User struct {
 	Email       string
 	Age         int
 	Password    string
-	role        string
+	Role        string
 }
