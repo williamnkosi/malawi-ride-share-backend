@@ -6,3 +6,108 @@ CREATE TABLE test.users (
  email VARCHAR(100) UNIQUE NOT NULL,
  age INT not null
 );
+
+
+
+-- Create Users Table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(50) UNIQUE NOT NULL,
+    last_name VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone_number VARCHAR(15) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role VARCHAR(50) CHECK (role IN ('passenger', 'driver', 'admin')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Drivers Table
+CREATE TABLE drivers (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    license_number VARCHAR(50) UNIQUE NOT NULL,
+    vehicle_id INT,
+    rating DECIMAL(2,1) CHECK (rating >= 0 AND rating <= 5),
+    status VARCHAR(50) CHECK (status IN ('active', 'unavailable')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Vehicles Table
+CREATE TABLE vehicles (
+    id SERIAL PRIMARY KEY,
+    driver_id INT REFERENCES drivers(id) ON DELETE CASCADE,
+    make VARCHAR(100),
+    model VARCHAR(100),
+    year INT CHECK (year >= 1886 AND year <= EXTRACT(YEAR FROM CURRENT_DATE)),
+    license_plate VARCHAR(20) UNIQUE NOT NULL,
+    color VARCHAR(50),
+    capacity INT CHECK (capacity > 0),
+    status VARCHAR(50) CHECK (status IN ('available', 'under maintenance')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Locations Table
+CREATE TABLE locations (
+    id SERIAL PRIMARY KEY,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    address TEXT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rides (
+    id SERIAL PRIMARY KEY,
+    driver_id INT REFERENCES drivers(id) ON DELETE SET NULL,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    vehicle_id INT REFERENCES vehicles(id) ON DELETE SET NULL,
+    start_location_id INT REFERENCES locations(id) ON DELETE SET NULL,
+    end_location_id INT REFERENCES locations(id) ON DELETE SET NULL,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    distance DECIMAL(5, 2),
+    fare DECIMAL(10, 2),
+    status VARCHAR(50) CHECK (status IN ('completed', 'canceled', 'pending')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Ratings and Reviews Table
+CREATE TABLE ratings_reviews (
+    id SERIAL PRIMARY KEY,
+    ride_id INT REFERENCES rides(id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    driver_id INT REFERENCES drivers(id) ON DELETE SET NULL,
+    rating DECIMAL(2,1) CHECK (rating >= 0 AND rating <= 5),
+    review TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Support Tickets Table
+CREATE TABLE support_tickets (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    issue TEXT,
+    status VARCHAR(50) CHECK (status IN ('open', 'resolved')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Drop all tables
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    -- Loop over all the tables
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
