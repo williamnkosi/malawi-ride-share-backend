@@ -65,7 +65,7 @@ func authEndpoint(db *sql.DB, r *gin.Engine) {
 			return
 		}
 
-		err := db.QueryRow("SELECT user_id, firstName, lastName, phoneNumber, email, age, password FROM test.users WHERE phoneNumber=$1", l.PhoneNumber).Scan(&u.Id, &u.FirstName, &u.LastName, &u.PhoneNumber, &u.Email, &u.Age, &u.Password)
+		err := db.QueryRow("SELECT id, first_name, last_name, phone_number, email, password_hash FROM users WHERE phone_number=$1", l.PhoneNumber).Scan(&u.Id, &u.FirstName, &u.LastName, &u.PhoneNumber, &u.Email, &u.Age, &u.Password)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
@@ -119,8 +119,8 @@ func UserEndpoint(db *sql.DB, r *gin.Engine) {
 			return
 		}
 
-		registerUserSqlStatement := `INSERT INTO test.users(firstName, lastName, phoneNumber, email, age, password) VALUES($1,$2,$3,$4,$5,$6)`
-		_, err = db.Exec(registerUserSqlStatement, u.FirstName, u.LastName, u.PhoneNumber, u.Email, u.Age, hashedPassword)
+		registerUserSqlStatement := `INSERT INTO users(first_name, last_name, phone_number,  email, password_hash, role) VALUES($1,$2,$3,$4,$5,$6)`
+		_, err = db.Exec(registerUserSqlStatement, u.FirstName, u.LastName, u.PhoneNumber, u.Email, hashedPassword, u.Role)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error with database": err.Error()})
 			return
@@ -143,7 +143,7 @@ func UserEndpoint(db *sql.DB, r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "no phoneNumber"})
 			return
 		}
-		err := db.QueryRow(`SELECT firstName,lastName, phoneNumber FROM test.users WHERE phoneNumber=$1 `, phoneNumber).Scan(&ur.FirstName, &ur.LastName, &ur.PhoneNumber)
+		err := db.QueryRow(`SELECT first_name,last_name, phone_number FROM users WHERE phone_number=$1 `, phoneNumber).Scan(&ur.FirstName, &ur.LastName, &ur.PhoneNumber)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})

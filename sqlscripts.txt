@@ -12,8 +12,8 @@ CREATE TABLE test.users (
 -- Create Users Table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    firstName VARCHAR(50) UNIQUE NOT NULL,
-    lastName VARCHAR(100) UNIQUE NOT NULL,
+    first_name VARCHAR(50) UNIQUE NOT NULL,
+    last_name VARCHAR(100) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number VARCHAR(15) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
@@ -62,6 +62,22 @@ CREATE TABLE locations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE rides (
+    id SERIAL PRIMARY KEY,
+    driver_id INT REFERENCES drivers(id) ON DELETE SET NULL,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    vehicle_id INT REFERENCES vehicles(id) ON DELETE SET NULL,
+    start_location_id INT REFERENCES locations(id) ON DELETE SET NULL,
+    end_location_id INT REFERENCES locations(id) ON DELETE SET NULL,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    distance DECIMAL(5, 2),
+    fare DECIMAL(10, 2),
+    status VARCHAR(50) CHECK (status IN ('completed', 'canceled', 'pending')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create Ratings and Reviews Table
 CREATE TABLE ratings_reviews (
     id SERIAL PRIMARY KEY,
@@ -83,3 +99,15 @@ CREATE TABLE support_tickets (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- Drop all tables
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    -- Loop over all the tables
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
