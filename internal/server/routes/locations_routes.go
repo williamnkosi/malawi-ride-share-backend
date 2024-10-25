@@ -15,7 +15,6 @@ type LocationRequestBody struct {
 	Address string `json:"address"`
 	City string `json:"city"`
 	Country string `json:"country"`
-
 }
 
 
@@ -92,7 +91,49 @@ func LocationsEnpoint(db *sql.DB, router *http.ServeMux) {
 		}
 	})
 
-	router.HandleFunc("PUT /locations/{id}", func(w http.ResponseWriter,  r *http.Request){
+	router.HandleFunc("PUT /locations", func(w http.ResponseWriter,  r *http.Request){
+		type UpdateLocationBody struct {
+			Id string `json:"id"`
+			Latitude float64 `json:"latitude"`
+			Longitude float64 `json:"longitude"`
+			Name string `json:"name"`
+			Address string `json:"address"`
+			City string `json:"city"`
+			Country string `json:"country"`
+		}
+		if r.Method != http.MethodPut {
+			http.Error(w,"Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		var requestBody UpdateLocationBody
+		err = json.Unmarshal(body,&requestBody); if err != nil {
+			http.Error(w,"Failed to parse JSON", http.StatusBadRequest)
+			return
+		}
+
+		locationQuery := "UPDATE locations SET latitude=$1, longitude=$2, address=$3, city=$4, country=$5 WHERE id=$6"
+		result, err := db.Exec(locationQuery, requestBody.Latitude, requestBody.Longitude, requestBody.Address, requestBody.City, requestBody.Country, requestBody.Id)
+		if err != nil {
+			http.Error(w, "Failed to update location", http.StatusInternalServerError)
+		}
+
+		rowsAffecteded, err := result.RowsAffected()
+		if err != nil || rowsAffecteded == 0 {http.Error(w,"Locaton was not found", http.StatusBadRequest) }
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(requestBody); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		
 	})
 
