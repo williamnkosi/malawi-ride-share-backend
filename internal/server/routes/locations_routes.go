@@ -3,7 +3,7 @@ package Server
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -18,8 +18,10 @@ type LocationRequestBody struct {
 
 }
 
-func LocationsEnpoint(db *sql.DB, r *http.ServeMux) {
-	r.HandleFunc("POST /locations", func(w http.ResponseWriter,  r *http.Request){
+
+
+func LocationsEnpoint(db *sql.DB, router *http.ServeMux) {
+	router.HandleFunc("POST /locations", func(w http.ResponseWriter,  r *http.Request){
 		if r.Method != http.MethodPost {
 			http.Error(w,"Invalid request method", http.StatusMethodNotAllowed)
 			return
@@ -33,10 +35,8 @@ func LocationsEnpoint(db *sql.DB, r *http.ServeMux) {
 		defer r.Body.Close()
 		
 		var requestBody LocationRequestBody
-		fmt.Print(body)
 		err = json.Unmarshal(body, &requestBody)
 		if err != nil {
-			fmt.Print(requestBody)
 			http.Error(w,"Failed to parse JSON", http.StatusBadRequest)
 		}
 
@@ -50,4 +50,54 @@ func LocationsEnpoint(db *sql.DB, r *http.ServeMux) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"message": Location Recieved"}`))
 	})
+
+	router.HandleFunc("GET /locations/{id}", func(w http.ResponseWriter,  r *http.Request){
+		type Location struct {
+			Id string
+			Latitude float64
+			Longitude float64
+			Address string
+			City string
+			Country string
+		}
+		l := Location{}
+		if r.Method != http.MethodGet {
+			http.Error(w,"Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+
+		id := r.PathValue("id")
+
+		if id == "" {
+			http.Error(w,"Didnt provide a valid value", http.StatusBadRequest)
+		}
+
+		LocationQueryStatement := `SELECT id, latitude, longitude, address, city, country FROM Locations WHERE id=` + id
+
+		err := db.QueryRow(LocationQueryStatement).Scan(&l.Id, &l.Latitude,&l.Longitude, &l.Address, &l.City, &l.Country)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w,"No query result", http.StatusBadRequest)
+				
+			} else {
+				http.Error(w,"Invalid request method", http.StatusMethodNotAllowed)
+		
+			}
+			return 
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(l); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+
+	router.HandleFunc("PUT /locations/{id}", func(w http.ResponseWriter,  r *http.Request){
+		
+	})
+
+	router.HandleFunc("DELETE /locations/{id}", func(w http.ResponseWriter,  r *http.Request){
+		
+	})
+	
 }
