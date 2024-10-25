@@ -79,7 +79,7 @@ func LocationsEnpoint(db *sql.DB, router *http.ServeMux) {
 				http.Error(w,"No query result", http.StatusBadRequest)
 				
 			} else {
-				http.Error(w,"Invalid request method", http.StatusMethodNotAllowed)
+				http.Error(w,"Couldn't complete process",http.StatusInternalServerError)
 		
 			}
 			return 
@@ -138,7 +138,33 @@ func LocationsEnpoint(db *sql.DB, router *http.ServeMux) {
 	})
 
 	router.HandleFunc("DELETE /locations/{id}", func(w http.ResponseWriter,  r *http.Request){
-		
+		if r.Method != http.MethodDelete {
+			http.Error(w,"Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+
+		id := r.PathValue("id")
+
+		if id == "" {
+			http.Error(w,"Didnt provide a valid value", http.StatusBadRequest)
+		}
+
+		LocationsDeleteStatement := `DELETE FROM locations WHERE id=$1`
+		_, err := db.Query(LocationsDeleteStatement, id)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w,"No query result", http.StatusBadRequest)
+				
+				} else {
+					http.Error(w,"Couldn't complete process",http.StatusInternalServerError)
+			
+				}
+				return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message": "Location Deleted"}`))
 	})
 	
 }
