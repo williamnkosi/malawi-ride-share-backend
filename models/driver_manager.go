@@ -25,7 +25,7 @@ func NewDriverManager() *DriverManager {
 	}
 }
 
-func (dm *DriverManager) serveWS(w http.ResponseWriter, r *http.Request){
+func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request){
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Failed to upgrade connection", err )

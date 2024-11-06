@@ -2,6 +2,7 @@ package Server
 
 import (
 	"database/sql"
+	"malawi-ride-share-backend/models"
 	"net/http"
 )
 
@@ -11,8 +12,6 @@ type LocationUpdate struct {
 	longitude float64
 }
 
-func DriversEndpoint(db *sql.DB, router *http.ServeMux){
-	router.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request){
-
-	})
+func DriversEndpoint(db *sql.DB, router *http.ServeMux, dm *models.DriverManager){
+	router.HandleFunc("/ws/drivers", dm.ServeWS)
 }
