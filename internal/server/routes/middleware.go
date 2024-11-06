@@ -1,4 +1,4 @@
-package ServerMiddleware
+package Server
 
 import (
 	"errors"

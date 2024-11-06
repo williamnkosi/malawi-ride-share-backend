@@ -18,6 +18,7 @@ func main() {
 	r := http.NewServeMux()
 	db := database.InitializeDataBase()
 	Server.LocationsEnpoint(db,r)
+	Server.DriversEndpoint(db,r)
 
 	server := http.Server {
 		Addr: ":8081",

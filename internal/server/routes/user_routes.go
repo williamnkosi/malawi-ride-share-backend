@@ -3,7 +3,6 @@ package Server
 import (
 	"database/sql"
 	"errors"
-	ServerMiddleware "malawi-ride-share-backend/internal/server"
 	ServerUtils "malawi-ride-share-backend/internal/server/utils"
 	"malawi-ride-share-backend/models"
 	"net/http"
@@ -67,7 +66,7 @@ func UserEndpoint(db *sql.DB, r *gin.Engine) {
 		c.JSON(http.StatusCreated, gin.H{"status": "User created", "token": tokenString, "id": id})
 	})
 
-	r.POST(USER_ENPOINT+"/driver", ServerMiddleware.AuthMiddleware(), func(c *gin.Context) {
+	r.POST(USER_ENPOINT+"/driver", AuthMiddleware(), func(c *gin.Context) {
 		var d = models.CreateDriver{}
 		if err := c.BindJSON(&d); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -86,7 +85,7 @@ func UserEndpoint(db *sql.DB, r *gin.Engine) {
 
 	})
 
-	r.GET("/user", ServerMiddleware.AuthMiddleware(), func(c *gin.Context) {
+	r.GET("/user", AuthMiddleware(), func(c *gin.Context) {
 
 		cr := models.Credentials{}
 		ur := &TestType{}
