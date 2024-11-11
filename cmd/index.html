@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Test</title>
+  </head>
+  <body>
+    <h1>WebSocket Client</h1>
+    <div>
+      <input type="text" id="messageInput" placeholder="Enter message" />
+      <button onclick="sendMessage()">Send Message</button>
+    </div>
+    <div id="output"></div>
+
+    <script>
+      // Initialize the WebSocket connection to the server
+      const socket = new WebSocket("ws://localhost:8081/ws/drivers");
+
+      // Event listener for when the connection is established
+      socket.onopen = function (event) {
+        console.log("Connected to WebSocket server");
+        displayMessage("Connected to server");
+      };
+
+      // Event listener for when a message is received from the server
+      socket.onmessage = function (event) {
+        console.log("Message received from server:", event.data);
+        displayMessage("Server: " + event.data);
+      };
+
+      // Event listener for when the connection is closed
+      socket.onclose = function (event) {
+        console.log("Disconnected from WebSocket server");
+        displayMessage("Disconnected from server");
+      };
+
+      // Event listener for errors
+      socket.onerror = function (error) {
+        console.error("WebSocket error:", error);
+        displayMessage("WebSocket error: " + error.message);
+      };
+
+      // Function to send a message to the server
+      function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const message = messageInput.value;
+        if (message && socket.readyState === WebSocket.OPEN) {
+          socket.send(message);
+          displayMessage("You: " + message);
+          messageInput.value = ""; // Clear the input
+        }
+      }
+
+      // Function to display messages in the output div
+      function displayMessage(message) {
+        const outputDiv = document.getElementById("output");
+        const messageElem = document.createElement("p");
+        messageElem.textContent = message;
+        outputDiv.appendChild(messageElem);
+      }
+    </script>
+  </body>
+</html>
