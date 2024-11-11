@@ -19,6 +19,7 @@ func main() {
 	dm := models.NewDriverManager()
 	Server.LocationsEnpoint(db,r)
 	Server.DriversEndpoint(db,r, dm)
+	Server.UserEndpoint(db, r)
 
 	server := http.Server {
 		Addr: ":8081",
