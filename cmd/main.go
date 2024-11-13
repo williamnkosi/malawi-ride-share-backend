@@ -17,6 +17,7 @@ func main() {
 	r := http.NewServeMux()
 	db := database.InitializeDataBase()
 	dm := models.NewDriverManager()
+	Server.AuthEndpoint(db,r)
 	Server.LocationsEnpoint(db,r)
 	Server.DriversEndpoint(db,r, dm)
 	Server.UserEndpoint(db, r)

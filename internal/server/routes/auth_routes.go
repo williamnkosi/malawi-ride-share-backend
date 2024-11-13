@@ -56,15 +56,27 @@ func AuthEndpoint(db *sql.DB,  router *http.ServeMux) {
 			return
 		}
 
-		tokenString, err := ServerUtils.GenerateToken(u.Id, u.FirstName, u.LastName, u.PhoneNumber)
+		tokenString, err := ServerUtils.GenerateToken(u.Id,u.PhoneNumber, u.FirstName, u.LastName)
 		if err != nil {
 			http.Error(w, "Couldn't create token", http.StatusInternalServerError)
 			return
 		}
 
+		type Response struct {
+			Message string `json:"message"`
+			Token string `json:"token"`
+		}
+
+		response := Response {
+			Message: "Login successful",
+			Token: tokenString,
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"token":` + tokenString + `}`))
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 		
 	
