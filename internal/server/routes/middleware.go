@@ -2,11 +2,9 @@ package Server
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -14,71 +12,59 @@ import (
 
 var jwtKey = []byte("testing-the-new-key")
 
-
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(next http.Handler) http.Handler {
 	type Claims struct {
 		PhoneNumber string `json:"phoneNumber"`
 		jwt.RegisteredClaims
 	}
 
-	return func(c *gin.Context) {
-		print("entered")
-		authHeader := c.GetHeader("Authorization")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { 
+		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
-			c.Abort()
+			http.Error(w, "Token is required", http.StatusBadRequest)
 			return
 		}
 
-		// Assuming the token comes in the format "Bearer <token>"
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token format must be 'Bearer <token>'"})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
-
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
-
-		// Handle token parsing errors
-		if err != nil {
-			if errors.Is(err, jwt.ErrSignatureInvalid) {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token signature"})
-				c.Abort()
+			// Assuming the token comes in the format "Bearer <token>"
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				http.Error(w, "Authorization token format must be 'Bearer <token>'", http.StatusUnauthorized)
 				return
 			}
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
+
+			tokenString := parts[1]
+
+	
+		token , err := jwt.Parse(tokenString, func(token *jwt.Token)(interface{}, error){
+			return jwtKey, nil
+		})
+	
+
+			// Handle token parsing errors
+			if err != nil {
+				if errors.Is(err, jwt.ErrSignatureInvalid) {
+					http.Error(w, "Invalid token signature", http.StatusUnauthorized)
+					return
+				}
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
+			
 			return
-		}
+			}
 
-		if !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
+			if !token.Valid {
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				return
+			}
+	
+			if errors.Is(err, jwt.ErrTokenExpired){
+				http.Error(w, "Token has expired", http.StatusBadRequest)
+			}
+			next.ServeHTTP(w, r)
 
-		// Ensure the token isn't expired
-		if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
-			c.Abort()
-			return
-		}
 
-		// Set the username in the context for the next handlers
-		fmt.Println("======]")
-		print(claims.PhoneNumber)
-
-		c.Set("phoneNumber", claims.PhoneNumber)
-		c.Next()
-
-	}
+	})
 }
+
 
 func CustomRecovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
