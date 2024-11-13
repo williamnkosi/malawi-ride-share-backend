@@ -24,17 +24,10 @@ func main() {
 
 	server := http.Server {
 		Addr: ":8081",
-		Handler: r,
+		Handler: Server.RecoveryMiddleware(r),
 	}
 
 	server.ListenAndServe()
-	// r.Use(ServerMiddleware.CustomRecovery())
-	// Server.AuthEndpoint(db, r)
-	// Server.UserEndpoint(db, r)
-	// err := r.Run()
-	// if err != nil {
-	// 	return
-	// } // listen and serve on 0.0.0.0:8080
 
 }
 

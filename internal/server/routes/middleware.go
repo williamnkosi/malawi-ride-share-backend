@@ -1,12 +1,12 @@
 package Server
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -66,20 +66,30 @@ func AuthMiddleware(next http.Handler) http.Handler {
 }
 
 
-func CustomRecovery() gin.HandlerFunc {
-	return func(c *gin.Context) {
+type Response struct {
+	Message string `json:"message"`
+	Status  int    `json:"status"`
+}
+
+// Recovery middleware to handle panics
+func RecoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Log the error (you could also send it to an error tracking service)
-				log.Printf("Panic recovered: %s", err)
+				log.Printf("Recovered from panic: %v", err)
 
-				// Return a 500 status with a custom message
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Internal Server Error. Please try again later.",
-				})
-				c.Abort()
+				// Respond with a 500 Internal Server Error
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+
+				response := Response{
+					Message: "Internal Server Error",
+					Status:  http.StatusInternalServerError,
+				}
+				json.NewEncoder(w).Encode(response)
 			}
 		}()
-		c.Next()
-	}
+
+		next.ServeHTTP(w, r)
+	})
 }
