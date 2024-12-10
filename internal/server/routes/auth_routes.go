@@ -2,51 +2,86 @@ package Server
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"io"
 	ServerUtils "malawi-ride-share-backend/internal/server/utils"
 	"malawi-ride-share-backend/models"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
 
-func AuthEndpoint(db *sql.DB, r *gin.Engine) {
-	const AUTH_ENPOINT = "/auth"
-	r.GET(AUTH_ENPOINT, func(c *gin.Context) {
-		u := models.User{}
-		l := models.Credentials{}
-		if err := c.BindJSON(&l); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func AuthEndpoint(db *sql.DB,  router *http.ServeMux) {
+	router.HandleFunc("GET /auth", func(w http.ResponseWriter, r *http.Request){
+		if r.Method != http.MethodGet {
+			http.Error(w, "Invalid request methog", http.StatusMethodNotAllowed)
+			return 
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body",http.StatusBadRequest)
+			return 
+		}
+
+		defer r.Body.Close()
+
+
+		var requestBody models.Credentials
+		err = json.Unmarshal(body,&requestBody)
+		if err != nil {
+			http.Error(w, "Could not parse JSON", http.StatusInternalServerError)
 			return
 		}
 
-		err := db.QueryRow("SELECT id, first_name, last_name, phone_number, email, password_hash, role  FROM users WHERE phone_number=$1", l.PhoneNumber).Scan(&u.Id, &u.FirstName, &u.LastName, &u.PhoneNumber, &u.Email, &u.Password, &u.Role)
+		
+
+		u := models.User{}
+		err = db.QueryRow("SELECT id, first_name, last_name, phone_number, email, password_hash, role  FROM users WHERE phone_number=$1", requestBody.PhoneNumber).Scan(&u.Id, &u.FirstName, &u.LastName, &u.PhoneNumber, &u.Email, &u.Password, &u.Role)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
+				http.Error(w,"Incorrect Phone Number or Password", http.StatusBadRequest)
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query error"})
+				http.Error(w, "Interal server error", http.StatusInternalServerError)
 			}
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(l.Password)); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect Phone Number or Password"})
+		if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(requestBody.Password)); err != nil {
+			http.Error(w, "Incorrect phone number or password", http.StatusBadGateway)
+		
 			return
 		}
 
-		tokenString, err := ServerUtils.GenerateToken(u.Id, u.FirstName, u.LastName, u.PhoneNumber)
+		tokenString, err := ServerUtils.GenerateToken(u.Id,u.PhoneNumber, u.FirstName, u.LastName)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create token"})
+			http.Error(w, "Couldn't create token", http.StatusInternalServerError)
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"data": tokenString})
+		type Response struct {
+			Message string `json:"message"`
+			Token string `json:"token"`
+		}
+
+		response := Response {
+			Message: "Login successful",
+			Token: tokenString,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
+		
+	
+
+
 
 }
 

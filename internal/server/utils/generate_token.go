@@ -15,7 +15,7 @@ func GenerateToken(id string, phoneNumber string, firstName string, lastName str
 		"phoneNumber":     phoneNumber,
 		"firstName":       firstName,
 		"lastName":        lastName,
-		"expiration-time": expirationTime,
+		"exp": expirationTime,
 	})
 	tokenString, err := token.SignedString(jwtKey)
 
