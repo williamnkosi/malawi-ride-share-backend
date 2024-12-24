@@ -1,7 +1,6 @@
 package main
 
 import (
-	"malawi-ride-share-backend/internal/database"
 	Server "malawi-ride-share-backend/internal/server/routes"
 	models "malawi-ride-share-backend/models"
 	"net/http"
@@ -15,15 +14,15 @@ import (
 
 func main() {
 	r := http.NewServeMux()
-	db := database.InitializeDataBase()
+	//db := database.InitializeDataBase()
 	dm := models.NewDriverManager()
-	Server.AuthEndpoint(db,r)
-	Server.LocationsEnpoint(db,r)
-	Server.DriversEndpoint(db,r, dm)
-	Server.UserEndpoint(db, r)
+	// Server.AuthEndpoint(db,r)
+	// Server.LocationsEnpoint(db,r)
+	Server.DriversEndpoint(r, dm)
+	// Server.UserEndpoint(db, r)
 
 	server := http.Server {
-		Addr: ":8081",
+		Addr: "0.0.0.0:8080",
 		Handler: Server.RecoveryMiddleware(r),
 	}
 
