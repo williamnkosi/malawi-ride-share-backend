@@ -9,10 +9,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{ 
-	ReadBufferSize: 1024,
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
 type DriverManager struct {
@@ -26,21 +26,23 @@ func NewDriverManager() *DriverManager {
 	}
 }
 
-func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request){
-	print("working")
+func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request) {
+
 	token := r.Header.Get("Authorization")
 	driverId := r.Header.Get("DriverId")
 
-	log.Println(token)
-	log.Println(driverId)
+	println("----")
+	println(token)
+	println(driverId)
 
 	if token == "" || driverId == "" {
-		http.Error(w, "Missing token or driverId", http.StatusBadRequest)
-		return
+		//log.Println("Failed")
+		//http.Error(w, "Missing token or driverId", http.StatusBadRequest)
+		//return
 	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Failed to upgrade connection", err )
+		log.Println("Failed to upgrade connection", err)
 	}
 
 	d := NewDriver(driverId, conn, dm)
@@ -75,13 +77,13 @@ func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request){
 	}
 }
 
-func (dm * DriverManager) addDriver(d *Driver){
+func (dm *DriverManager) addDriver(d *Driver) {
 	dm.Lock()
 	defer dm.Unlock()
 	dm.drivers[d] = true
 }
 
-func (dm *DriverManager) removeDriver(d *Driver){
+func (dm *DriverManager) removeDriver(d *Driver) {
 	dm.Lock()
 	defer dm.Unlock()
 
@@ -89,5 +91,5 @@ func (dm *DriverManager) removeDriver(d *Driver){
 		d.connection.Close()
 		delete(dm.drivers, d)
 	}
-	
+
 }
