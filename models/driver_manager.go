@@ -46,7 +46,7 @@ func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := NewDriver(driverId, conn, dm)
-	dm.addDriver(d)
+	dm.AddDriver(d)
 
 	for {
 		messageType, message, err := conn.ReadMessage()
@@ -77,13 +77,13 @@ func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (dm *DriverManager) addDriver(d *Driver) {
+func (dm *DriverManager) AddDriver(d *Driver) {
 	dm.Lock()
 	defer dm.Unlock()
 	dm.drivers[d] = true
 }
 
-func (dm *DriverManager) removeDriver(d *Driver) {
+func (dm *DriverManager) RemoveDriver(d *Driver) {
 	dm.Lock()
 	defer dm.Unlock()
 
@@ -92,4 +92,18 @@ func (dm *DriverManager) removeDriver(d *Driver) {
 		delete(dm.drivers, d)
 	}
 
+}
+
+func (dm *DriverManager) GetAllDrivers() DriversList {
+	dm.RLock()
+	defer dm.RUnlock()
+
+	return dm.drivers
+}
+
+func (dm *DriverManager) GetDriversByProximity() DriversList {
+	dm.RLock()
+	defer dm.RUnlock()
+
+	return dm.drivers
 }
