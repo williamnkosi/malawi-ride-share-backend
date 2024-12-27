@@ -8,26 +8,22 @@ import (
 	_ "github.com/lib/pq"
 )
 
-
-
-
-
 func main() {
 	r := http.NewServeMux()
 	//db := database.InitializeDataBase()
 	dm := models.NewDriverManager()
+	rm := models.NewRideShareManager()
 	// Server.AuthEndpoint(db,r)
 	// Server.LocationsEnpoint(db,r)
 	Server.DriversEndpoint(r, dm)
+	Server.RideShareManagerEndpoint(r, dm, rm)
 	// Server.UserEndpoint(db, r)
 
-	server := http.Server {
-		Addr: "0.0.0.0:8080",
+	server := http.Server{
+		Addr:    "0.0.0.0:8080",
 		Handler: Server.RecoveryMiddleware(r),
 	}
 
 	server.ListenAndServe()
 
 }
-
-

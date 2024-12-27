@@ -1,10 +1,5 @@
 package models
 
-import (
-	"math/rand"
-	"time"
-)
-
 type RideStatus int
 
 const (
@@ -38,12 +33,9 @@ type RideShareManager struct {
 	Rides map[string]*Ride
 }
 
-func NewRide(r *Ride) *Ride {
-
-	rand.Seed(time.Now().UnixNano())
-	return &Ride{
-		RideId: "testing",
-	}
+func NewRideShareManager() *RideShareManager {
+	type RidesList map[string]*Ride
+	return &RideShareManager{Rides: make(RidesList)}
 }
 
 func (rm *RideShareManager) RequestDriverLocation(dm *DriverManager) {
