@@ -96,20 +96,22 @@ func (dm *DriverManager) RemoveDriver(d *Driver) {
 
 func (dm *DriverManager) GetAllDrivers() []ResponseDriverData {
 	dm.RLock()
-	defer dm.RUnlock()
 	l := []ResponseDriverData{}
 	for d, avaliable := range dm.drivers {
-		if avaliable {
+		if avaliable && d.location != nil {
 			trimmedData := d.TrimData()
 			l = append(l, trimmedData)
 		}
 	}
+	defer dm.RUnlock()
+
 	return l
 }
 
-func (dm *DriverManager) GetDriversByProximity() DriversList {
+func (dm *DriverManager) GetDriversByProximity() []ResponseDriverData {
 	dm.RLock()
+	l := []ResponseDriverData{}
 	defer dm.RUnlock()
 
-	return dm.drivers
+	return l
 }

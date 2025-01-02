@@ -13,6 +13,7 @@ func main() {
 	//db := database.InitializeDataBase()
 	dm := models.NewDriverManager()
 	rm := models.NewRideShareManager()
+	models.NewGoogleMapsManager()
 	// Server.AuthEndpoint(db,r)
 	// Server.LocationsEnpoint(db,r)
 	Server.DriversEndpoint(r, dm)
