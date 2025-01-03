@@ -9,10 +9,10 @@ type Location struct {
 	Latitude  float64 `json:"latitude"`
 }
 type Driver struct {
-	connection *websocket.Conn
-	manager    *DriverManager
-	driverId   string
-	location   *Location
+	Connection *websocket.Conn
+	Manager    *DriverManager
+	DriverId   string
+	Location   *Location
 }
 
 type ResponseDriverData struct {
@@ -22,16 +22,16 @@ type ResponseDriverData struct {
 
 func NewDriver(driverId string, connection *websocket.Conn, manager *DriverManager) *Driver {
 	return &Driver{
-		connection: connection,
-		manager:    manager,
-		driverId:   driverId,
+		Connection: connection,
+		Manager:    manager,
+		DriverId:   driverId,
 	}
 }
 
 func (d *Driver) TrimData() ResponseDriverData {
 	var td = &ResponseDriverData{}
-	td.DriverId = d.driverId
-	td.Location = *d.location
+	td.DriverId = d.DriverId
+	td.Location = *d.Location
 	return *td
 
 }
