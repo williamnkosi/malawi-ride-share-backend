@@ -13,6 +13,7 @@ type Driver struct {
 	Manager    *DriverManager
 	DriverId   string
 	Location   *Location
+	FcmToken   string
 }
 
 type ResponseDriverData struct {
@@ -20,11 +21,13 @@ type ResponseDriverData struct {
 	Location Location `json:"location"`
 }
 
-func NewDriver(driverId string, connection *websocket.Conn, manager *DriverManager) *Driver {
+func NewDriver(driverId string, fcmToken string, connection *websocket.Conn, manager *DriverManager) *Driver {
 	return &Driver{
 		Connection: connection,
 		Manager:    manager,
 		DriverId:   driverId,
+		Location:   nil,
+		FcmToken:   fcmToken,
 	}
 }
 

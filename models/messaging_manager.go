@@ -34,3 +34,23 @@ func (mm *MessagingManager) SendNotification(client *messaging.Client, token str
 	fmt.Println("Successfully sent message:", response)
 	return nil
 }
+
+func (mm *MessagingManager) SendDataMessage(client *messaging.Client, token string) error {
+	// Define the message payload
+	message := &messaging.Message{
+		Token: token, // Replace with the recipient's device token
+		Data: map[string]string{
+			"message": "This is a test message from Go",
+		},
+	}
+
+	// Send the message
+	response, err := client.Send(context.Background(), message)
+	if err != nil {
+		return fmt.Errorf("failed to send message: %v", err)
+	}
+
+	// Print the response
+	fmt.Println("Successfully sent message:", response)
+	return nil
+}

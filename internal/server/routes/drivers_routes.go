@@ -15,33 +15,41 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-type LocationUpdate struct {
-	driverId  string
-	latitude  float64
-	longitude float64
-}
-
 func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 	router.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
 
 		token := r.Header.Get("Authorization")
+		fcm := r.Header.Get("FcmToken")
 		driverId := r.Header.Get("DriverId")
 
-		println("----")
-		println(token)
-		println(driverId)
+		// body, err := io.ReadAll(r.Body)
+		// if err != nil {
+		// 	http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		// 	return
+		// }
 
-		if token == "" || driverId == "" {
-			//log.Println("Failed")
-			//http.Error(w, "Missing token or driverId", http.StatusBadRequest)
-			//return
+		// defer r.Body.Close()
+
+		// var requestBody models.Location
+		// err = json.Unmarshal(body, &requestBody)
+		// {
+		// 	if err != nil {
+		// 		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		// 		return
+		// 	}
+		// }
+
+		if token == "" || driverId == "" || fcm == "" {
+			log.Println("Failed")
+			http.Error(w, "Missing token or driverId, token, Location", http.StatusBadRequest)
+			return
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println("Failed to upgrade connection", err)
 		}
 
-		d := models.NewDriver(driverId, conn, dm)
+		d := models.NewDriver(driverId, fcm, conn, dm)
 		dm.AddDriver(d)
 
 		for {

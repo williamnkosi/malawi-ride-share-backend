@@ -64,7 +64,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("error getting messaging client: %v", err)
 		}
-		mm.SendNotification(messagingClient, token)
+		mm.SendDataMessage(messagingClient, token)
 		//w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "pong")
 	})
