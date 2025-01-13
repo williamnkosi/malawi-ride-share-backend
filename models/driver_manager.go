@@ -1,53 +1,55 @@
 package models
 
 import (
-	"log"
-	"net/http"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{ 
-	ReadBufferSize: 1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
 type DriverManager struct {
-	drivers DriversList
+	Drivers DriversList
 	sync.RWMutex
 }
 
 func NewDriverManager() *DriverManager {
 	return &DriverManager{
-		drivers: make(DriversList),
+		Drivers: make(DriversList),
 	}
 }
 
-func (dm *DriverManager) ServeWS(w http.ResponseWriter, r *http.Request){
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Failed to upgrade connection", err )
-	}
-
-	d := NewDriver("driverId", conn, dm)
-	dm.addDriver(d)
-}
-
-func (dm * DriverManager) addDriver(d *Driver){
+func (dm *DriverManager) AddDriver(d *Driver) {
 	dm.Lock()
 	defer dm.Unlock()
-	dm.drivers[d] = true
+	dm.Drivers[d] = true
 }
 
-func (dm *DriverManager) removeDriver(d *Driver){
+func (dm *DriverManager) RemoveDriver(d *Driver) {
 	dm.Lock()
 	defer dm.Unlock()
 
-	if _, ok := dm.drivers[d]; !ok {
-		d.connection.Close()
-		delete(dm.drivers, d)
+	if _, ok := dm.Drivers[d]; !ok {
+		d.Connection.Close()
+		delete(dm.Drivers, d)
 	}
-	
+
+}
+
+func (dm *DriverManager) GetAllDrivers() []ResponseDriverData {
+	dm.RLock()
+	l := []ResponseDriverData{}
+	for d, avaliable := range dm.Drivers {
+		if avaliable && d.Location != nil {
+			trimmedData := d.TrimData()
+			l = append(l, trimmedData)
+		}
+	}
+	defer dm.RUnlock()
+
+	return l
+}
+
+func (dm *DriverManager) GetDriversByProximity() []ResponseDriverData {
+	dm.RLock()
+	l := []ResponseDriverData{}
+	defer dm.RUnlock()
+
+	return l
 }
