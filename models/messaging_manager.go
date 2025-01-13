@@ -40,6 +40,7 @@ func (mm *MessagingManager) SendDataMessage(client *messaging.Client, token stri
 	message := &messaging.Message{
 		Token: token, // Replace with the recipient's device token
 		Data: map[string]string{
+			"title":   "Test Tile",
 			"message": "This is a test message from Go",
 		},
 	}
