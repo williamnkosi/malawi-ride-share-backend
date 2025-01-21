@@ -3,6 +3,7 @@ package Server
 import (
 	"encoding/json"
 	"log"
+	Middleware "malawi-ride-share-backend/internal/middleware"
 	"malawi-ride-share-backend/models"
 	"net/http"
 
@@ -16,9 +17,9 @@ var upgrader = websocket.Upgrader{
 }
 
 func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
-	router.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+	driversHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		//token := r.Header.Get("Authorization")
+		token := r.Header.Get("Authorization")
 		fcm := r.Header.Get("FcmToken")
 		driverId := r.Header.Get("DriverId")
 
@@ -39,11 +40,11 @@ func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 		// 	}
 		// }
 
-		// if token == "" || driverId == "" || fcm == "" {
-		// 	log.Println("Failed")
-		// 	http.Error(w, "Missing token or driverId, token, Location", http.StatusBadRequest)
-		// 	return
-		// }
+		if token == "" || driverId == "" || fcm == "" {
+			log.Println("Failed")
+			http.Error(w, "Missing token or driverId, token, Location", http.StatusBadRequest)
+			return
+		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println("Failed to upgrade connection", err)
@@ -81,4 +82,8 @@ func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 			}
 		}
 	})
+	router.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+		Middleware.FirebaseAuthMiddleware(driversHandler).ServeHTTP(w, r)
+	})
+
 }

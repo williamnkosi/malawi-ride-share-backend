@@ -1,4 +1,4 @@
-package sever
+package Middleware
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 // FirebaseAuthMiddleware verifies Firebase ID tokens.
 func FirebaseAuthMiddleware(next http.Handler) http.Handler {
+
 	// Initialize Firebase App
 	opt := option.WithCredentialsFile("/Users/williamnkosi/repo/malawi-ride-share-backend/cmd/serviceAccountKey.json")
 	app, err := firebase.NewApp(context.Background(), nil, opt)
@@ -40,16 +41,18 @@ func FirebaseAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		idToken := parts[1]
-
 		// Verify the ID token
 		token, err := client.VerifyIDToken(context.Background(), idToken)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to verify ID token: %v", err), http.StatusUnauthorized)
 			return
 		}
+		print("verified")
 
 		// Add token claims to the request context
 		ctx := context.WithValue(r.Context(), "firebaseUser", token)
+		print("firebase----Done")
 		next.ServeHTTP(w, r.WithContext(ctx))
+
 	})
 }
