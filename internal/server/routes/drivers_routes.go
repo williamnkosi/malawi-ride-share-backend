@@ -23,22 +23,11 @@ func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 		fcm := r.Header.Get("FcmToken")
 		driverId := r.Header.Get("DriverId")
 
-		// body, err := io.ReadAll(r.Body)
-		// if err != nil {
-		// 	http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		// 	return
-		// }
-
-		// defer r.Body.Close()
-
-		// var requestBody models.Location
-		// err = json.Unmarshal(body, &requestBody)
-		// {
-		// 	if err != nil {
-		// 		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
-		// 		return
-		// 	}
-		// }
+		print("---")
+		print(token)
+		print(fcm)
+		print(driverId)
+		print("-----")
 
 		if token == "" || driverId == "" || fcm == "" {
 			log.Println("Failed")
@@ -82,7 +71,8 @@ func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 			}
 		}
 	})
-	router.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/drivers/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+		print("Entere")
 		Middleware.FirebaseAuthMiddleware(driversHandler).ServeHTTP(w, r)
 	})
 

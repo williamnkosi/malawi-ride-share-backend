@@ -47,11 +47,9 @@ func FirebaseAuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, fmt.Sprintf("Failed to verify ID token: %v", err), http.StatusUnauthorized)
 			return
 		}
-		print("verified")
 
 		// Add token claims to the request context
 		ctx := context.WithValue(r.Context(), "firebaseUser", token)
-		print("firebase----Done")
 		next.ServeHTTP(w, r.WithContext(ctx))
 
 	})
