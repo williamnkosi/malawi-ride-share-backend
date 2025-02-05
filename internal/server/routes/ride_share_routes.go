@@ -45,9 +45,12 @@ func RideShareManagerEndpoint(r *http.ServeMux, dm *models.DriverManager, rm *mo
 		d := dm.GetDriversByProximity(requestBody.Location, gm)
 
 		for _, d := range d {
-			mm.SendNotification(d.FcmToken)
-			mm.SendDataMessage(d.FcmToken)
+			mm.SendNotificationAndMessage(d.FcmToken)
 		}
+
+	})
+
+	r.HandleFunc("POST /rideshare/accept_request", func(w http.ResponseWriter, r *http.Request) {
 
 	})
 

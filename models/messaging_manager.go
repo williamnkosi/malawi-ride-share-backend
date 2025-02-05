@@ -64,3 +64,27 @@ func (mm *MessagingManager) SendDataMessage(token string) error {
 	fmt.Println("Successfully sent message:", response)
 	return nil
 }
+
+func (mm *MessagingManager) SendNotificationAndMessage(token string) error {
+	message := &messaging.Message{
+		Token: token,
+		Notification: &messaging.Notification{
+			Title: "Hello from Go!",
+			Body:  "This is a test notification sent from Go",
+		},
+		Data: map[string]string{
+			"title":   "Test Tile",
+			"message": "This is a test message from Go",
+		},
+	}
+
+	// Send the message
+	response, err := mm.messagingClient.Send(context.Background(), message)
+	if err != nil {
+		return fmt.Errorf("failed to send message: %v", err)
+	}
+
+	// Print the response
+	fmt.Println("Successfully sent message:", response)
+	return nil
+}
