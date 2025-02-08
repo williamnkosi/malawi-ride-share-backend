@@ -29,12 +29,12 @@ func main() {
 	//db := database.InitializeDataBase()
 	dm := models.NewDriverManager()
 	rm := models.NewRideShareManager()
-	models.NewGoogleMapsManager()
-	mm := models.NewMessagingManager()
+	gm := models.NewGoogleMapsManager()
+	mm := models.NewMessagingManager(app)
 	// Server.AuthEndpoint(db,r)
 	// Server.LocationsEnpoint(db,r)
 	Server.DriversEndpoint(r, dm)
-	Server.RideShareManagerEndpoint(r, dm, rm)
+	Server.RideShareManagerEndpoint(r, dm, rm, gm, mm)
 	// Server.UserEndpoint(db, r)
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -58,20 +58,14 @@ func main() {
 		}
 
 		var token = requestBody.Token
-
-		// Set the response status code and write "pong" to the response body
-		messagingClient, err := app.Messaging(context.Background())
-		if err != nil {
-			log.Fatalf("error getting messaging client: %v", err)
-		}
-		mm.SendDataMessage(messagingClient, token)
+		mm.SendDataMessage(token)
 		//w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "pong")
 	})
 
 	server := http.Server{
 		Addr:    "0.0.0.0:8080",
-		Handler: Server.RecoveryMiddleware(r),
+		Handler: r,
 	}
 
 	server.ListenAndServe()

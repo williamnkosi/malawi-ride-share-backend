@@ -14,13 +14,16 @@ type GoogleMapsManager struct {
 
 func NewGoogleMapsManager() *GoogleMapsManager {
 	k := os.Getenv("GAPI_KEY")
+	print(k)
 	c, err := maps.NewClient(maps.WithAPIKey(k))
+
 	if err != nil {
 		log.Fatalf("fatal error: %s", err)
 	}
 	print("Google Maps Manager created")
+
 	return &GoogleMapsManager{
-		ApiKey:     "your_api_key",
+		ApiKey:     k,
 		MapsClient: c,
 	}
 

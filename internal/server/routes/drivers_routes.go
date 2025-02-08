@@ -3,6 +3,7 @@ package Server
 import (
 	"encoding/json"
 	"log"
+	Middleware "malawi-ride-share-backend/internal/middleware"
 	"malawi-ride-share-backend/models"
 	"net/http"
 
@@ -16,28 +17,17 @@ var upgrader = websocket.Upgrader{
 }
 
 func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
-	router.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+	driversHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		token := r.Header.Get("Authorization")
 		fcm := r.Header.Get("FcmToken")
 		driverId := r.Header.Get("DriverId")
 
-		// body, err := io.ReadAll(r.Body)
-		// if err != nil {
-		// 	http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		// 	return
-		// }
-
-		// defer r.Body.Close()
-
-		// var requestBody models.Location
-		// err = json.Unmarshal(body, &requestBody)
-		// {
-		// 	if err != nil {
-		// 		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
-		// 		return
-		// 	}
-		// }
+		print("---")
+		print(token)
+		print(fcm)
+		print(driverId)
+		print("-----")
 
 		if token == "" || driverId == "" || fcm == "" {
 			log.Println("Failed")
@@ -68,6 +58,7 @@ func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 					}
 
 					d.Location = &receivedMessage
+					print(d.Location)
 				}
 			}
 
@@ -80,4 +71,9 @@ func DriversEndpoint(router *http.ServeMux, dm *models.DriverManager) {
 			}
 		}
 	})
+	router.HandleFunc("/drivers/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+		print("Entere")
+		Middleware.FirebaseAuthMiddleware(driversHandler).ServeHTTP(w, r)
+	})
+
 }
